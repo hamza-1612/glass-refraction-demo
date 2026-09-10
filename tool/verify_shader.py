@@ -28,7 +28,7 @@ for flipped in [False,True]:
     prog=ctx.program(vertex_shader=vertex,fragment_shader=code)
     programs[flipped]=(prog,ctx.simple_vertex_array(prog,quad,'position'))
 
-def render(data,radius=40,band=22,strength=7,frost=0,flipped=False):
+def render(data,radius=40,band=32,strength=14,frost=0,dispersion=1.5,flipped=False):
     h,w,_=data.shape
     prog,vao=programs[flipped]
     upload=np.flipud(data).copy() if flipped else data
@@ -40,7 +40,7 @@ def render(data,radius=40,band=22,strength=7,frost=0,flipped=False):
     texture.use(0)
     prog['uSize'].value=(w,h)
     prog['uBackdrop'].value=0
-    for name,value in [('uRadius',radius),('uBand',band),('uStrength',strength),('uFrost',frost)]:
+    for name,value in [('uRadius',radius),('uBand',band),('uStrength',strength),('uFrost',frost),('uDispersion',dispersion)]:
         prog[name].value=value/min(w,h)
     vao.render(moderngl.TRIANGLE_STRIP)
     result=np.frombuffer(output.read(components=4,alignment=1),dtype='u1').reshape(h,w,4).copy()
@@ -83,13 +83,37 @@ check('moving pane updates sampled scene',np.abs(a.astype(int)-b).mean()>12)
 base=pattern(320,120)
 big=np.repeat(np.repeat(base,2,axis=0),2,axis=1)
 small=render(base)
-large=render(big,radius=80,band=44,strength=14)
+large=render(big,radius=80,band=64,strength=28,dispersion=3)
 large_down=np.array(Image.fromarray(large).resize((320,120),Image.Resampling.BOX))
 check('DPR scaling interior',np.abs(large_down[4:-4,4:-4].astype(int)-small[4:-4,4:-4]).mean()<4)
 # Premultiplied translucent samples remain valid with the five-tap frost kernel.
 a=pattern(320,120);a[:,:,:3]//=2;a[:,:,3]=128
 b=render(a,frost=.65)
 check('premultiplied alpha preserved',np.all(b[:,:,:3]<=b[:,:,3:4]))
+
+# Coordinate ramps encode the actual sampled position independently of texture
+# direction. Test straight top/bottom and rounded side ends separately.
+h,w=120,320
+y,x=np.mgrid[:h,:w]
+ramp=np.zeros((h,w,4),dtype='u1')
+ramp[:,:,0]=x*255//(w-1);ramp[:,:,1]=y*255//(h-1);ramp[:,:,3]=255
+warped=render(ramp,dispersion=0)
+for name,yy,xx,channel,sign in [('top',8,160,1,1),('bottom',111,160,1,-1),('left',60,8,0,1),('right',60,311,0,-1)]:
+    delta=(int(warped[yy,xx,channel])-int(ramp[yy,xx,channel]))*sign
+    check(f'{name} inward displacement',delta>4)
+# Achromatic content only develops color at moving contrast boundaries.
+gray=pattern(w,h);gray[:,:,:3]=((x//13+y//17)%2*255)[:,:,None]
+plain=render(gray,dispersion=0,frost=.25)
+split=render(gray,dispersion=1.5,frost=.25)
+check('zero dispersion stays achromatic with frost',np.max(np.ptp(plain[:,:,:3].astype(int),axis=2))<=1)
+check('dispersion reveals chromatic fringes',np.sum(np.ptp(split[:,:,:3].astype(int),axis=2)>20)>100)
+flat=np.full((h,w,4),128,dtype='u1');flat[:,:,3]=255
+check('uniform background creates no painted rainbow',np.abs(render(flat).astype(int)-flat).max()<=1)
+check('dispersion disabled by zero optical strength',np.abs(render(gray,strength=0).astype(int)-gray).max()<=1)
+for dx,dy in [(35,0),(0,11)]:
+    scene=pattern(500,260)
+    a=render(scene[40:160,20:340]);b=render(scene[40+dy:160+dy,20+dx:340+dx])
+    check(f'live scene movement {dx},{dy}',np.abs(a.astype(int)-b).mean()>8)
 
 # Contact sheet: identical raw scene and shader output, both light and dark.
 preview=Image.new('RGB',(720,400),'#ffffff')
