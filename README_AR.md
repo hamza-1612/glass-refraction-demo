@@ -1,0 +1,98 @@
+# تجربة الجلاس على Android
+
+هذا مشروع Flutter مستقل لتجربة انكسار الخلفية الحقيقي داخل سطح زجاجي.
+استخدمنا مواصفات سكيل glass-mobile-ui: شريط كبسولة عائم، زر دائري مسطح
+بتدرج هادئ، واجهة فاتحة وداكنة، ومحتوى أمامي واضح لا يتشوه.
+هذه شاشة اختبار بصري، وليست تطبيق صيدلية كاملًا. الشبكة والألوان خلف الشريط
+مقصودة لإظهار انحناء الخطوط عند الحواف.
+
+## المتطلبات
+
+- Flutter 3.44 أو أحدث، وليس 3.27 لهذه النسخة من الكود.
+- Android Studio وأدوات Android SDK، وJava المرفقة معه.
+- جوال Android موصول بكابل بيانات، مع USB debugging وموافقتك على اتصال الحاسوب.
+- لا تحتاج Visual Studio ولا محاكي Android عند استخدام جوالك الحقيقي.
+- تحتاج إنترنت أول مرة لتنزيل أدوات البناء والحزم؛ التطبيق نفسه لا يطلب شبكة أو بيانات شخصية.
+
+## التشغيل من Windows
+
+فك ZIP في مسار قصير مثل `D:\glass_refraction_demo`، وافتح PowerShell داخله.
+لا تشغّل هذه الأوامر داخل مشروع الصيدلية الموجود عندك.
+
+```powershell
+flutter --version
+flutter doctor
+flutter doctor --android-licenses
+.\setup-android.cmd
+.\run-android.cmd
+```
+
+اقرأ رخص Android ووافق عليها بنفسك. يمكن تجاهل تحذير Visual Studio
+إذا هدفك Android فقط. أصلح أخطاء Android toolchain إن ظهرت.
+إذا ظهرت قائمة أجهزة، اختَر جوالك Android، وليس Chrome أو Windows.
+أو حدّد معرّفه كما يظهر في `flutter devices`:
+
+```powershell
+.\run-android.cmd DEVICE_ID
+```
+
+سكربت الإعداد يولّد ملفات Android باستخدام Flutter المثبّت عندك في مجلد
+`.platform_seed` ثم ينسخ مجلد Android فقط. لا يستبدل كود التجربة أو اختباراتها.
+المجلد الوسيط يبقى محليًا، ولا تحتاج تعديله. إذا توقف الإعداد قبل اكتماله،
+أعد تسمية `.platform_seed` ثم أعد تشغيل الإعداد.
+لذلك مجلد Android وأدوات Gradle ليست مضمّنة داخل ZIP؛ يولّدها الإعداد أول مرة.
+
+## كيف تختبر التأثير؟
+
+1. تأكد أن الحالة بالأعلى `refractive`. هذا يعني اختيار مسار الشيدر؛
+   افحص الشكل بصريًا أيضًا، فالمؤشر لا يثبت صحة كل تفاصيل الرسم.
+2. اسحب الشريط فوق الخطوط والدوائر من منطقة فارغة فيه.
+3. اضغط `Animate background` لتحريك الخلفية دون تحريك الشريط.
+4. راقب الخطوط: تبقى مستقيمة خارج الزجاج وتنحني قرب حوافه؛ الأيقونات تبقى حادة.
+5. حرّك منزلق `Refraction` بين 0 و14 للمقارنة.
+6. جرّب `Dark` ثم `Light`.
+7. `Compare blur only` يعرض الضبابية البديلة عمدًا؛ `Use refraction` يعيد الانكسار.
+8. `Opaque fallback` يلغي الشفافية. اضغط `Glass` لاستعادتها.
+9. جرّب التبويبات وزر +؛ الزر يزيد عداد الضغط ولا يغيّر التبويب المحدد.
+
+الحالات:
+- `loading`: الشيدر قيد التحميل.
+- `refractive`: مسار الانكسار مفعّل.
+- `frostedFallback`: Blur فقط، بدون انكسار؛ قد يكون بسبب خيار المقارنة أو عدم الدعم أو خطأ الشيدر.
+- `opaque`: سطح معتم، باختيارك أو بسبب وضع التباين العالي.
+
+دعم Android أو Vulkan وحده لا يضمن نجاح هذه النسخة على كل جهاز.
+الكود يفحص `ImageFilter.isShaderFilterSupported` وقت التشغيل؛ يتطلب المسار Impeller.
+إذا استمرت `frostedFallback` بعد إلغاء خيار المقارنة، أرسل صورة الحالة ومخرجات
+PowerShell وإصدار Flutter. لا تعتبر تشغيل Chrome اختبارًا للانكسار الأصلي.
+
+## الفحص والبناء
+
+بعد الإعداد:
+
+```powershell
+flutter analyze
+flutter test test
+flutter test integration_test/device_test.dart -d DEVICE_ID
+flutter build apk --debug
+```
+
+مسار APK بعد البناء: `build\app\outputs\flutter-apk\app-debug.apk`.
+الملف ZIP هو مصدر المشروع، وليس APK مبنيًا.
+
+## ما الذي تم التحقق منه؟
+
+اطّلع على `VALIDATION.md`. نجاح اختبار GLSL على الحاسوب لا يعادل
+بناء Flutter أو اختبار محرك Impeller على هاتف؛ يلزم التحقق على جهازك.
+
+## إعادة استخدام التأثير
+
+انسخ `lib/refractive_glass.dart` و`shaders/glass_refraction.frag` إلى مشروعك،
+وسجّل الشيدر كما في `pubspec.yaml`. ضع `RefractiveGlass` داخل مساحة محددة
+الأبعاد وارسم الخلفية قبله داخل Stack. لا تضع النصوص داخل طبقة تشويه الخلفية.
+
+## المصادر الرسمية
+
+- https://docs.flutter.dev/platform-integration/android/setup
+- https://api.flutter.dev/flutter/dart-ui/ImageFilter/ImageFilter.shader.html
+- https://docs.flutter.dev/perf/impeller
