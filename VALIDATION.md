@@ -1,4 +1,32 @@
-# Validation — 2026-09-10
+# Validation — 2026-09-12
+
+## Version 0.3
+
+The shader passed 44 host EGL checks. New regression checks require monotonic
+sample coordinates across both axes, so the optical shoulder cannot fold into
+a mirrored top/bottom or side strip. Dispersion defaults to 0.35 logical pixels,
+is blended at low strength, and is checked for hairline contrast-dependent color
+without broad saturated bands. Native Flutter/Impeller device inspection is still
+required before claiming a visual match.
+
+## Version 0.2
+
+The shader passed 41 host EGL checks including independent four-edge displacement,
+chromatic fringes at contrast boundaries, neutral uniform backgrounds, and motion
+along both axes. Inspected text-on-blue and text-on-black host renders.
+
+[Run 34481059598](https://github.com/hamza-1612/glass-refraction-demo/actions/runs/34481059598)
+built source from `b0d2cab83df4528d54e13ea2618dca5771a90bf8` on PR #1.
+Flutter 3.47.3 / Dart 3.13.3: formatting, analyze, all widget tests and
+release ARM64/ARM32 APK builds succeeded. Downloaded ARM64 artifact ZIP and APK
+hashes match build output; ZIP integrity, native ARM64 library and shader asset passed.
+
+- ARM64 APK: 16,128,353 bytes; SHA-256 `f1750d3f86fb832c26c6d3ef8b6a643b5a34d4dcaf90474a35da23342b7ba045`.
+- ARM32 APK build SHA-256 `e5be4980c85ea0c0d835331d86b880843042793d13d0716f5f5df3eb7eca0f55`.
+- Native visual matching, Impeller mapping and real-device performance remain unverified.
+- New builds use a generated demo signing key; Android may require uninstalling the prior demo before installation.
+
+## Earlier version 0.1
 
 Executed successfully:
 - Compiled/rendered the bundled GLSL through the host EGL/OpenGL harness.

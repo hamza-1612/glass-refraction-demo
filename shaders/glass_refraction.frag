@@ -9,6 +9,7 @@ uniform float uRadius;
 uniform float uBand;
 uniform float uStrength;
 uniform float uFrost;
+uniform float uDispersion;
 out vec4 fragColor;
 
 float roundedDistance(vec2 p, vec2 halfSize, float radius) {
@@ -40,15 +41,35 @@ void main() {
   } else {
     normal = q.x > q.y ? vec2(sign(p.x), 0.0) : vec2(0.0, sign(p.y));
   }
-  float weight = (1.0 - smoothstep(0.0, band, depth)) * smoothstep(0.0, 1.5, depth);
-  // Inward sampling stays in bounds; no outside sampling margin is needed.
-  vec2 sampleAt = pixel - normal * max(uStrength, 0.0) * unitSize * weight;
+  // A broad convex shoulder on ALL edges. The profile is continuous at both
+  // ends and its slope is deliberately bounded, so sampling stays monotonic
+  // instead of folding into a mirror-like strip at the top or bottom.
+  float t = clamp(depth / band, 0.0, 1.0);
+  float shoulder = 4.5 * t * (1.0 - t) * (1.0 - t);
+  vec2 field = normal * 0.82 + (p / max(halfSize, vec2(1.0))) * 0.18;
+  float strength = min(max(uStrength, 0.0) * unitSize, band * 0.50);
+  vec2 sampleAt = pixel - field * strength * shoulder;
   float frost = max(uFrost, 0.0) * unitSize;
-  vec4 color = backdrop(sampleAt) * 0.5;
+  vec4 centerSample = backdrop(sampleAt);
+  vec4 color = centerSample * 0.5;
   color += backdrop(sampleAt + vec2(frost, 0.0)) * 0.125;
   color += backdrop(sampleAt - vec2(frost, 0.0)) * 0.125;
   color += backdrop(sampleAt + vec2(0.0, frost)) * 0.125;
   color += backdrop(sampleAt - vec2(0.0, frost)) * 0.125;
+  // Dispersion comes from displaced RGB backdrop samples, never a painted
+  // rainbow. Uniform backgrounds stay neutral; contrast reveals the fringes.
+  float split = min(
+      max(uDispersion, 0.0) * unitSize,
+      min(band * 0.035, strength * 0.08)) *
+      min(shoulder * 1.5, 1.0);
+  vec4 redSample = backdrop(sampleAt - field * split);
+  vec4 blueSample = backdrop(sampleAt + field * split);
+  vec3 base = color.rgb / max(color.a, 0.0001);
+  vec3 dispersed = vec3(
+    base.r + redSample.r / max(redSample.a, 0.0001) - centerSample.r / max(centerSample.a, 0.0001),
+    base.g,
+    base.b + blueSample.b / max(blueSample.a, 0.0001) - centerSample.b / max(centerSample.a, 0.0001));
+  color.rgb = mix(base, clamp(dispersed, 0.0, 1.0), 0.28) * color.a;
   // ClipRRect clips this in Flutter. Keep an identity outside as well.
   fragColor = d > 0.0 ? backdrop(pixel) : color;
 }

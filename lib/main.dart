@@ -22,7 +22,10 @@ class _GlassDemoState extends State<GlassDemo>
   int presses = 0;
   int selectedTab = 0;
   bool frostOnly = false;
-  double strength = 7;
+  bool lensOnly = false;
+  int scene = 2;
+  double strength = 14;
+  double dispersion = 0.35;
 
   @override
   void initState() {
@@ -47,7 +50,7 @@ class _GlassDemoState extends State<GlassDemo>
       colorSchemeSeed: Colors.teal,
     ),
     home: Scaffold(
-      appBar: AppBar(title: const Text('Live glass • Flutter')),
+      appBar: AppBar(title: const Text('Live glass • v0.3')),
       body: Column(
         children: [
           Padding(
@@ -62,8 +65,8 @@ class _GlassDemoState extends State<GlassDemo>
           Expanded(
             child: LayoutBuilder(
               builder: (context, bounds) {
-                final width = math.min(340.0, bounds.maxWidth - 32);
-                const height = 80.0;
+                final width = math.min(lensOnly ? 210.0 : 340.0, bounds.maxWidth - 32);
+                final height = lensOnly ? 120.0 : 80.0;
                 final x = ((bounds.maxWidth - width) / 2 + drag.dx)
                     .clamp(8.0, math.max(8.0, bounds.maxWidth - width - 8))
                     .toDouble();
@@ -77,7 +80,7 @@ class _GlassDemoState extends State<GlassDemo>
                         child: AnimatedBuilder(
                           animation: motion,
                           builder: (_, _) => CustomPaint(
-                            painter: GridScene(phase: motion.value, dark: dark),
+                            painter: GridScene(phase: motion.value, dark: dark, scene: scene),
                           ),
                         ),
                       ),
@@ -88,20 +91,24 @@ class _GlassDemoState extends State<GlassDemo>
                         height: height,
                         child: GestureDetector(
                           key: const Key('glass-drag'),
+                          behavior: HitTestBehavior.opaque,
                           onPanUpdate: (event) =>
                               setState(() => drag += event.delta),
                           child: RefractiveGlass(
-                            dark: dark,
-                            radius: 40,
+                            dark: dark || scene == 2,
+                            radius: height / 2,
                             strength: strength,
+                            edgeBand: height * .4,
+                            dispersion: dispersion,
+                            tintOpacity: lensOnly ? .025 : .06,
                             forceFrostFallback: frostOnly,
                             reduceTransparency: opaque,
                             onModeChanged: (value) {
                               if (mounted && mode != value)
                                 setState(() => mode = value);
                             },
-                            child: FloatingNavigation(
-                              dark: dark,
+                            child: lensOnly ? const SizedBox.expand() : FloatingNavigation(
+                              dark: dark || scene == 2,
                               selected: selectedTab,
                               onSelect: (tab) => setState(() => selectedTab = tab),
                               onAdd: () => setState(() => presses++),
@@ -121,17 +128,40 @@ class _GlassDemoState extends State<GlassDemo>
               const Text('Refraction'),
               Expanded(child: Slider(
                 key: const Key('strength'),
-                min: 0, max: 14, divisions: 14, value: strength,
+                min: 0, max: 22, divisions: 22, value: strength,
                 label: strength.toStringAsFixed(0),
                 onChanged: (value) => setState(() => strength = value),
               )),
               Text(strength.toStringAsFixed(0)),
             ]),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(children: [
+              const Text('Edge colors'),
+              Expanded(child: Slider(
+                key: const Key('dispersion'),
+                min: 0, max: 1, divisions: 20, value: dispersion,
+                label: dispersion.toStringAsFixed(2),
+                onChanged: (value) => setState(() => dispersion = value),
+              )),
+              Text(dispersion.toStringAsFixed(1)),
+            ]),
+          ),
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 8,
             children: [
+              TextButton(
+                key: const Key('scene'),
+                onPressed: () => setState(() => scene = (scene + 1) % 4),
+                child: Text('Scene: ${['Grid', 'Lines', 'Text', 'Dots'][scene]}'),
+              ),
+              TextButton(
+                key: const Key('lens'),
+                onPressed: () => setState(() { lensOnly = !lensOnly; drag = Offset.zero; }),
+                child: Text(lensOnly ? 'Show navigation' : 'Clear lens'),
+              ),
               TextButton(
                 key: const Key('frost'),
                 onPressed: () => setState(() => frostOnly = !frostOnly),
@@ -243,17 +273,50 @@ class FloatingNavigation extends StatelessWidget {
 }
 
 class GridScene extends CustomPainter {
-  const GridScene({required this.phase, required this.dark});
+  const GridScene({required this.phase, required this.dark, this.scene = 0});
   final double phase;
   final bool dark;
+  final int scene;
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = dark ? const Color(0xFF0B2029) : const Color(0xFFE9F0EF),
+      Paint()..color = scene == 2 ? (dark ? const Color(0xFF08090C) : const Color(0xFF3434D9))
+          : dark ? const Color(0xFF0B1015) : const Color(0xFFF1F2F6),
     );
     canvas.save();
-    canvas.translate(-phase * 160, 0);
+    canvas.translate(-phase * 80, -phase * 40);
+    if (scene != 0) {
+      final ink = Paint()..color = scene == 2 || dark ? Colors.white : const Color(0xFF14151A);
+      if (scene == 1) {
+        for (double x = -80; x < size.width + 160; x += 36) {
+          canvas.drawRect(Rect.fromLTWH(x, 0, 16, size.height + 80), ink);
+        }
+        // Horizontal bars make vertical displacement independently visible.
+        final cross = Paint()..color = const Color(0xFFEF8354);
+        for (double y = 35; y < size.height + 80; y += 80) {
+          canvas.drawRect(Rect.fromLTWH(0, y, size.width + 160, 6), cross);
+        }
+      } else if (scene == 3) {
+        for (double y = 30; y < size.height + 80; y += 58) {
+          for (double x = 30; x < size.width + 160; x += 58) {
+            canvas.drawCircle(Offset(x, y), 18, ink);
+          }
+        }
+      } else {
+        for (double y = 20; y < size.height + 100; y += 68) {
+          final text = TextPainter(
+            text: const TextSpan(text: 'Glass in motion  Aa',
+              style: TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w500)),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          text.paint(canvas, Offset(14, y));
+          text.dispose();
+        }
+      }
+      canvas.restore();
+      return;
+    }
     final grid = Paint()
       ..color = (dark ? Colors.white : Colors.black).withValues(alpha: .32)
       ..strokeWidth = 1.5;
@@ -281,5 +344,5 @@ class GridScene extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(GridScene old) => phase != old.phase || dark != old.dark;
+  bool shouldRepaint(GridScene old) => phase != old.phase || dark != old.dark || scene != old.scene;
 }

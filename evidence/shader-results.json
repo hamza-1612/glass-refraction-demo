@@ -1,7 +1,7 @@
 {
   "runtime": "Headless OpenGL via EGL; NOT Flutter/Impeller",
   "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
-  "passed": 31,
+  "passed": 41,
   "checks": [
     "identity 320x120",
     "edge displacement 320x120",
@@ -33,7 +33,17 @@
     "updated backdrop 180x200",
     "moving pane updates sampled scene",
     "DPR scaling interior",
-    "premultiplied alpha preserved"
+    "premultiplied alpha preserved",
+    "top inward displacement",
+    "bottom inward displacement",
+    "left inward displacement",
+    "right inward displacement",
+    "zero dispersion stays achromatic with frost",
+    "dispersion reveals chromatic fringes",
+    "uniform background creates no painted rainbow",
+    "dispersion disabled by zero optical strength",
+    "live scene movement 35,0",
+    "live scene movement 0,11"
   ],
   "not_run": [
     "Flutter analyze/build/widget tests",

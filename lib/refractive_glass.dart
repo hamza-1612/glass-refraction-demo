@@ -12,9 +12,11 @@ class RefractiveGlass extends StatefulWidget {
     super.key,
     required this.child,
     this.radius = 28,
-    this.strength = 7,
-    this.edgeBand = 22,
-    this.frost = 0.65,
+    this.strength = 14,
+    this.edgeBand = 32,
+    this.frost = 0.25,
+    this.dispersion = 0.35,
+    this.tintOpacity = 0.06,
     this.dark = false,
     this.reduceTransparency = false,
     this.forceFrostFallback = false,
@@ -23,10 +25,12 @@ class RefractiveGlass extends StatefulWidget {
   }) : assert(radius >= 0),
        assert(strength >= 0),
        assert(edgeBand > 0),
-       assert(frost >= 0);
+       assert(frost >= 0),
+       assert(dispersion >= 0),
+       assert(tintOpacity >= 0 && tintOpacity <= 1);
 
   final Widget child;
-  final double radius, strength, edgeBand, frost;
+  final double radius, strength, edgeBand, frost, dispersion, tintOpacity;
   final bool dark, reduceTransparency, forceFrostFallback;
   final ValueChanged<GlassRenderMode>? onModeChanged;
   final void Function(Object, StackTrace)? onShaderError;
@@ -140,16 +144,10 @@ class _RefractiveGlassState extends State<RefractiveGlass> {
           : const Color(0xFFF7FBFC);
       final foreground = DecoratedBox(
         decoration: BoxDecoration(
-          color: tint.withValues(
-            alpha: opaque
-                ? 1
-                : widget.dark
-                ? .28
-                : .20,
-          ),
+          color: tint.withValues(alpha: opaque ? 1 : widget.tintOpacity),
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
-            color: Colors.white.withValues(alpha: widget.dark ? .22 : .60),
+            color: Colors.white.withValues(alpha: widget.dark ? .16 : .30),
             width: .8,
           ),
         ),
@@ -172,7 +170,8 @@ class _RefractiveGlassState extends State<RefractiveGlass> {
             ..setFloat(2, radius / shortest)
             ..setFloat(3, widget.edgeBand / shortest)
             ..setFloat(4, widget.strength / shortest)
-            ..setFloat(5, widget.frost / shortest);
+            ..setFloat(5, widget.frost / shortest)
+            ..setFloat(6, widget.dispersion / shortest);
           filter = ui.ImageFilter.shader(_shader!);
         } else {
           filter = ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10);
