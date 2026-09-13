@@ -1,4 +1,13 @@
-# Validation — 2026-09-10
+# Validation — 2026-09-12
+
+## Version 0.3
+
+The shader passed 44 host EGL checks. New regression checks require monotonic
+sample coordinates across both axes, so the optical shoulder cannot fold into
+a mirrored top/bottom or side strip. Dispersion defaults to 0.35 logical pixels,
+is blended at low strength, and is checked for hairline contrast-dependent color
+without broad saturated bands. Native Flutter/Impeller device inspection is still
+required before claiming a visual match.
 
 ## Version 0.2
 

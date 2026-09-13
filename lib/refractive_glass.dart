@@ -15,7 +15,7 @@ class RefractiveGlass extends StatefulWidget {
     this.strength = 14,
     this.edgeBand = 32,
     this.frost = 0.25,
-    this.dispersion = 1.5,
+    this.dispersion = 0.35,
     this.tintOpacity = 0.06,
     this.dark = false,
     this.reduceTransparency = false,

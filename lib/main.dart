@@ -25,7 +25,7 @@ class _GlassDemoState extends State<GlassDemo>
   bool lensOnly = false;
   int scene = 2;
   double strength = 14;
-  double dispersion = 1.5;
+  double dispersion = 0.35;
 
   @override
   void initState() {
@@ -50,7 +50,7 @@ class _GlassDemoState extends State<GlassDemo>
       colorSchemeSeed: Colors.teal,
     ),
     home: Scaffold(
-      appBar: AppBar(title: const Text('Live glass • v0.2')),
+      appBar: AppBar(title: const Text('Live glass • v0.3')),
       body: Column(
         children: [
           Padding(
@@ -141,7 +141,7 @@ class _GlassDemoState extends State<GlassDemo>
               const Text('Edge colors'),
               Expanded(child: Slider(
                 key: const Key('dispersion'),
-                min: 0, max: 3, divisions: 12, value: dispersion,
+                min: 0, max: 1, divisions: 20, value: dispersion,
                 label: dispersion.toStringAsFixed(2),
                 onChanged: (value) => setState(() => dispersion = value),
               )),

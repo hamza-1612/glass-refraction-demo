@@ -28,7 +28,7 @@ for flipped in [False,True]:
     prog=ctx.program(vertex_shader=vertex,fragment_shader=code)
     programs[flipped]=(prog,ctx.simple_vertex_array(prog,quad,'position'))
 
-def render(data,radius=40,band=32,strength=14,frost=0,dispersion=1.5,flipped=False):
+def render(data,radius=40,band=32,strength=14,frost=0,dispersion=.35,flipped=False):
     h,w,_=data.shape
     prog,vao=programs[flipped]
     upload=np.flipud(data).copy() if flipped else data
@@ -83,7 +83,7 @@ check('moving pane updates sampled scene',np.abs(a.astype(int)-b).mean()>12)
 base=pattern(320,120)
 big=np.repeat(np.repeat(base,2,axis=0),2,axis=1)
 small=render(base)
-large=render(big,radius=80,band=64,strength=28,dispersion=3)
+large=render(big,radius=80,band=64,strength=28,dispersion=.7)
 large_down=np.array(Image.fromarray(large).resize((320,120),Image.Resampling.BOX))
 check('DPR scaling interior',np.abs(large_down[4:-4,4:-4].astype(int)-small[4:-4,4:-4]).mean()<4)
 # Premultiplied translucent samples remain valid with the five-tap frost kernel.
@@ -101,12 +101,20 @@ warped=render(ramp,dispersion=0)
 for name,yy,xx,channel,sign in [('top',8,160,1,1),('bottom',111,160,1,-1),('left',60,8,0,1),('right',60,311,0,-1)]:
     delta=(int(warped[yy,xx,channel])-int(ramp[yy,xx,channel]))*sign
     check(f'{name} inward displacement',delta>4)
+# The sampled coordinate must keep increasing across each axis. A reversal here
+# is the fold-over that looks like a vertically or horizontally mirrored strip.
+vertical=warped[:,w//2,1].astype(int)
+horizontal=warped[h//2,:,0].astype(int)
+check('vertical coordinate remains monotonic',np.min(np.diff(vertical))>=-1)
+check('horizontal coordinate remains monotonic',np.min(np.diff(horizontal))>=-1)
 # Achromatic content only develops color at moving contrast boundaries.
 gray=pattern(w,h);gray[:,:,:3]=((x//13+y//17)%2*255)[:,:,None]
 plain=render(gray,dispersion=0,frost=.25)
-split=render(gray,dispersion=1.5,frost=.25)
+split=render(gray,dispersion=.35,frost=.25)
 check('zero dispersion stays achromatic with frost',np.max(np.ptp(plain[:,:,:3].astype(int),axis=2))<=1)
-check('dispersion reveals chromatic fringes',np.sum(np.ptp(split[:,:,:3].astype(int),axis=2)>20)>100)
+spread=np.ptp(split[:,:,:3].astype(int),axis=2)
+check('subtle dispersion reveals chromatic fringes',np.sum(spread>5)>40)
+check('dispersion avoids broad saturated bands',np.percentile(spread,99)<70)
 flat=np.full((h,w,4),128,dtype='u1');flat[:,:,3]=255
 check('uniform background creates no painted rainbow',np.abs(render(flat).astype(int)-flat).max()<=1)
 check('dispersion disabled by zero optical strength',np.abs(render(gray,strength=0).astype(int)-gray).max()<=1)
