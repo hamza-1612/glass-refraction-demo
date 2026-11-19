@@ -24,13 +24,15 @@ The workflow has a 30-minute limit and does not change Actions billing settings.
 If account quotas or permissions block the job, the owner must resolve them.
 
 `refractive` indicates the shader path; `frostedFallback` indicates blur only.
+Press **Debug** first: a yellow outline must sit exactly on the glass edges.
+The math and starting numbers live in [docs/glass-model.md](docs/glass-model.md).
 Real-device visual inspection remains necessary even after successful builds.
 See [Arabic instructions](README_AR.md) and [validation limits](VALIDATION.md).
 
 ## Local setup
 
 Windows: run `setup-android.cmd`, then `run-android.cmd` with your Android phone
-connected. Requires Flutter >=3.44 and Android development tools.
+connected. Requires Flutter >=3.50 and Android development tools.
 Visual Studio's Windows C++ workload is not needed for Android.
 
 The wrapper is generated from the installed Flutter SDK, without replacing
