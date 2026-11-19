@@ -24,6 +24,12 @@ engine's `uSize` (the whole backdrop texture) as the glass size.
     `evidence/linux-impeller-debug.png`.
   - Reproduce with `tool/linux_impeller_preview.sh`.
 
+## GitHub Actions build — succeeded
+
+[Build run 44632571671](https://github.com/hamza-1612/glass-refraction-demo/actions/runs/44632571671)
+on Flutter stable passed analyze, widget tests and release APK compilation.
+ARM64 APK SHA-256: `f92088ba4ff1bdd65ca488d44af423b109d824765f9db2180e603586a94289f2`.
+
 ## Not executed
 
 - A physical Android device:
